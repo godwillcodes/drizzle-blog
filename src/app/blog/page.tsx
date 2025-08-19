@@ -4,10 +4,10 @@ import { articles, authors } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
-// Revalidate cache hourly, but can also use revalidateTag("articles") on demand
+// Cache revalidation interval in seconds (1 hour)
 export const revalidate = 3600;
 
-// Explicit type safety
+// Define Article type for type safety and clarity
 type Article = {
   id: number;
   title: string;
@@ -18,10 +18,10 @@ type Article = {
   authorLastName: string | null;
 };
 
-// SEO Metadata for this page
+// Generate SEO metadata for the blog page
 export async function generateMetadata() {
   try {
-    const metadataBase = new URL("https://mysite.com"); // Replace with your production domain
+    const metadataBase = new URL("https://mysite.com"); // Production domain
 
     return {
       metadataBase,
@@ -35,7 +35,7 @@ export async function generateMetadata() {
         siteName: "MySite",
         images: [
           {
-            url: "/og-default.png", // resolves relative to metadataBase
+            url: "/og-default.png", // Path relative to metadataBase
             width: 1200,
             height: 630,
             alt: "Godwill's Simple Blog",
@@ -57,11 +57,11 @@ export async function generateMetadata() {
   }
 }
 
-
-// ArticleCard extracted for readability
+// ArticleCard component to render individual article summary
 function ArticleCard({ article }: { article: Article }) {
   return (
-    <article
+    <Link
+      href={`/blog/${article.slug}`}
       aria-labelledby={`article-${article.id}`}
       className="group relative flex flex-col rounded-2xl p-4 lg:p-6 
         bg-gray-900 backdrop-blur-xl border border-gray-700/50 
@@ -71,20 +71,15 @@ function ArticleCard({ article }: { article: Article }) {
       <h2
         id={`article-${article.id}`}
         className="text-lg md:text-xl font-semibold mb-4 
-        text-gray-100 group-hover:text-teal-400 
-        transition-colors truncate"
+          text-gray-100 group-hover:text-teal-400 
+          transition-colors truncate"
       >
-        <Link
-          href={`/blog/${article.slug}`}
-          aria-label={`Read more about ${article.title}`}
-        >
-          {article.title ?? "Untitled"}
-        </Link>
+        {article.title ?? "Untitled"}
       </h2>
 
       <p
         className="text-base text-gray-300 mb-6 tracking-wide font-medium 
-        select-none"
+          select-none"
       >
         By{" "}
         <span className="text-teal-400">
@@ -113,27 +108,29 @@ function ArticleCard({ article }: { article: Article }) {
         {article.description || "No description available."}
       </p>
 
-      <Link
-        href={`/blog/${article.slug}`}
+      <span
+        aria-hidden="true"
         className="mt-8 inline-block self-start text-sm md:text-base font-semibold 
-        text-teal-400 group-hover:text-teal-300 
-        transition-colors select-none"
+          text-teal-400 group-hover:text-teal-300 
+          transition-colors select-none"
       >
         Read More →
-      </Link>
+      </span>
 
       <div
         className="absolute inset-0 rounded-2xl border border-transparent 
-        group-hover:border-teal-500/40 transition-colors pointer-events-none"
+          group-hover:border-teal-500/40 transition-colors pointer-events-none"
       />
-    </article>
+    </Link>
   );
 }
 
+// BlogPage component to fetch and display published articles
 export default async function BlogPage() {
   let allArticles: Article[] = [];
 
   try {
+    // Query published articles with author data, ordered by publish date descending
     const result = await db
       .select({
         id: articles.id,
@@ -153,7 +150,7 @@ export default async function BlogPage() {
       notFound();
     }
 
-    // Map with safety defaults
+    // Map database results to Article type with default fallbacks
     allArticles = result.map((a) => ({
       id: a.id ?? 0,
       title: a.title ?? "Untitled",

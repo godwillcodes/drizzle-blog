@@ -11,19 +11,19 @@ interface ArticleProps {
   };
 }
 
-// SEO metadata
-// SEO metadata
+// Generate SEO metadata for the article page using the slug param
 export async function generateMetadata(props: ArticleProps): Promise<Metadata> {
-  const params = await props.params; // await here for dynamic route
+  const params = await props.params; // Await dynamic route params
   const { slug } = params;
 
+  // Fetch article title and description for metadata
   const article = await db
     .select({ title: articles.title, description: articles.description })
     .from(articles)
     .where(
       and(
         eq(articles.slug, slug),
-        eq(articles.isPublished, true)
+        eq(articles.isPublished, true) // Only published articles
       )
     )
     .limit(1)
@@ -32,6 +32,7 @@ export async function generateMetadata(props: ArticleProps): Promise<Metadata> {
 
   if (!article) return { title: "Article Not Found" };
 
+  // Return metadata for SEO and social sharing
   return {
     title: article.title,
     description: article.description,
@@ -46,11 +47,13 @@ export async function generateMetadata(props: ArticleProps): Promise<Metadata> {
   };
 }
 
+// Main ArticlePage component: fetches and renders an article by slug
 export default async function ArticlePage({ params }: ArticleProps) {
-  const { slug } = await params; // Await params before destructuring
+  const { slug } = await params; // Await route params destructure
 
   let article;
   try {
+    // Fetch article data and author info by slug and published status
     const result = await db
       .select({
         id: articles.id,
@@ -76,24 +79,26 @@ export default async function ArticlePage({ params }: ArticleProps) {
     article = result[0];
   } catch (err) {
     console.error("Database fetch error:", err);
-    notFound();
+    notFound(); // Show 404 if fetching fails
   }
 
-  if (!article) notFound();
+  if (!article) notFound(); // Show 404 if no article found
 
   return (
     <main className="relative font-mono min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-black text-gray-100 px-6 py-32 overflow-hidden">
-      {/* Floating Background Orbs */}
+      {/* Decorative floating background elements */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-20 left-1/4 w-72 h-72 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
         <div className="absolute bottom-32 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float-slow" />
       </div>
 
       <div className="max-w-4xl mx-auto text-center">
+        {/* Article title */}
         <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-teal-400 via-cyan-300 to-purple-500 drop-shadow-lg mb-8">
           {article.title}
         </h1>
 
+        {/* Author and publication date */}
         <p className="text-xl text-gray-400 mb-20">
           By <span className="font-semibold text-teal-300">{article.authorFirstName} {article.authorLastName}</span> •{" "}
           {new Date(article.publishDate).toLocaleDateString(undefined, {
@@ -103,10 +108,12 @@ export default async function ArticlePage({ params }: ArticleProps) {
           })}
         </p>
 
+        {/* Article content rendered as HTML */}
         <article className="prose space-y-6 prose-xl prose-invert prose-teal mx-auto text-left text-lg sm:text-justify leading-relaxed tracking-wide">
           <div className="space-y-8" dangerouslySetInnerHTML={{ __html: article.content }} />
         </article>
 
+        {/* Link back to blog overview */}
         <div className="mt-20 flex justify-center">
           <Link
             href="/blog"
@@ -129,4 +136,3 @@ export default async function ArticlePage({ params }: ArticleProps) {
     </main>
   );
 }
-
