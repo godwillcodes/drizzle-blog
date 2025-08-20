@@ -1,105 +1,95 @@
 import { db } from "../lib/db";
 import { authors, articles } from "./schema";
-
-// Utility: Generate random date in the last 6 months, clamped to now
-function randomDate(start: Date, end: Date): Date {
-  const now = Date.now();
-  const startTime = start.getTime();
-  const endTime = Math.min(end.getTime(), now);
-  return new Date(startTime + Math.random() * (endTime - startTime));
-}
-
-// SEO-friendly slugify (no id suffix)
-function slugify(title: string): string {
-  return title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
+import type { InsertAuthor, InsertArticle } from "./schema";
+import { 
+  SEED_AUTHORS, 
+  SEED_ARTICLES, 
+  CONTENT_TEMPLATES, 
+  DESCRIPTION_TEMPLATES, 
+  EMAIL_CONFIG 
+} from "./seed-data";
+import {
+  randomDate,
+  slugify,
+  parseName,
+  generateEmail,
+  generateContent,
+  generateDescription,
+  toDatabaseDate,
+  validateSeedData,
+} from "./seed-utils";
 
 async function seed() {
   try {
+    console.log("🌱 Starting database seeding...");
+    
+    // Validate seed data before proceeding
+    validateSeedData(SEED_AUTHORS, SEED_ARTICLES);
+    
     await db.transaction(async (tx) => {
+      // Clear existing data
+      console.log("🧹 Clearing existing data...");
       await tx.delete(articles);
       await tx.delete(authors);
 
-      // WFD team authors, parse first and last names roughly from full names, generate emails from slug
-      const wfdAuthors = [
-        { fullName: "Nedjma Benzekri", title: "Shaping the Future of Global Health Access" },
-        { fullName: "Neha Arora", title: "Building Sustainable Financial Pathways" },
-        { fullName: "Fibi Dalyop", title: "Turning Data Into Human Stories" },
-        { fullName: "Maïte Karstanje", title: "Scaling Operations for Greater Impact" },
-        { fullName: "Michell Montserrat Mor Andrade", title: "Driving Digital Transformation for Change" },
-        { fullName: "Aanuoluwapo Ayoola Oladeji", title: "Cultivating People, Power, and Purpose" },
-      ];
+      // Insert authors
+      console.log("👥 Inserting authors...");
+      const authorData: InsertAuthor[] = SEED_AUTHORS.map((fullName) => {
+        const { firstName, lastName } = parseName(fullName);
+        return {
+          firstName,
+          lastName,
+          email: generateEmail(firstName, lastName, EMAIL_CONFIG.domain),
+        };
+      });
 
       const insertedAuthors = await tx
         .insert(authors)
-        .values(
-          wfdAuthors.map(({ fullName }) => {
-            const parts = fullName.split(" ");
-            const firstName = parts[0];
-            const lastName = parts.slice(1).join(" ") || "";
-            const emailSlug = `${firstName}.${lastName}`.toLowerCase().replace(/\s+/g, "");
-            return {
-              firstName,
-              lastName,
-              email: `${emailSlug}@wfdteam.example.com`,
-            };
-          })
-        )
+        .values(authorData)
         .returning();
 
       if (insertedAuthors.length === 0) {
-        throw new Error("No authors were inserted, aborting article seeding.");
+        throw new Error("Failed to insert authors");
       }
 
-      // Article titles on productivity, work ethic, productivity rights focusing on the WFD themes
-      const articleTitles = [
-        "Mastering Productivity for Sustainable Success",
-        "Ethics and Empathy in Modern Workplaces",
-        "Understanding Productivity Rights in the Digital Era",
-        "Balancing Technology and Human Potential",
-        "Workplace Culture: The Heart of Productivity",
-        "Empowering Teams with Purpose and Focus",
-      ];
+      console.log(`✅ Inserted ${insertedAuthors.length} authors`);
 
-      // Content generation function retains the structure but uses our new titles
-      function generateContent(title: string): string {
-        return `
-          <p>In this article titled "${title}", we explore the intricate themes and provide insightful analysis. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.</p>
-          <p>The discussion on "${title}" covers recent trends, historical context, and future outlook. There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable.</p>
-          <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry, specifically, the "${title}" domain. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s...</p>
-        `.trim();
-      }
-
+      // Insert articles
+      console.log("📝 Inserting articles...");
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const articlesData = articleTitles.map((title, idx) => {
+      const articleData: InsertArticle[] = SEED_ARTICLES.map((title, idx) => {
         const author = insertedAuthors[idx % insertedAuthors.length];
         const publishDate = randomDate(sixMonthsAgo, new Date());
 
         return {
           title,
           slug: slugify(title),
-          description: `A deep dive into "${title}", exploring its themes and impact.`,
-          content: generateContent(title),
+          description: generateDescription(title, DESCRIPTION_TEMPLATES),
+          content: generateContent(title, CONTENT_TEMPLATES),
           authorId: author.id,
-          publishDate: publishDate.toISOString(),
-          isPublished: idx % 2 === 0, // half published, half draft
+          publishDate: toDatabaseDate(publishDate),
+          isPublished: idx % 2 === 0, // Alternate between published and draft
         };
       });
 
-      await tx.insert(articles).values(articlesData);
+      const insertedArticles = await tx
+        .insert(articles)
+        .values(articleData)
+        .returning();
+
+      console.log(`✅ Inserted ${insertedArticles.length} articles`);
     });
 
-    console.log("✅ Seed completed with 6 WFD authors and 6 productivity-themed articles!");
+    console.log("🎉 Database seeding completed successfully!");
+    console.log(`📊 Summary: ${SEED_AUTHORS.length} authors, ${SEED_ARTICLES.length} articles`);
+    
   } catch (error) {
-    console.error("❌ Seed failed:", error);
+    console.error("❌ Database seeding failed:", error);
     process.exit(1);
   }
 }
 
+// Run the seed function
 seed();

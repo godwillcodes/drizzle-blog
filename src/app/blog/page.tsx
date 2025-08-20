@@ -3,70 +3,9 @@ import { getPublishedArticles } from "@/lib/blog";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { BLOG_LIST_METADATA } from "@/lib/seo-config";
 
-export const metadata: Metadata = {
-  title: "Published Articles | Drizzle Blog",
-  description:
-    "A minimal blog platform built with Next.js 15, TypeScript, Drizzle ORM, and Tailwind CSS. Features article listing, detail pages, author relationships, and responsive UI.",
-  keywords: [
-    "blog",
-    "nextjs",
-    "typescript",
-    "drizzle",
-    "postgresql",
-    "tailwindcss",
-    "articles",
-    "modern web development",
-  ],
-  authors: [{ name: "Drizzle Blog Team" }],
-  creator: "Drizzle Blog",
-  publisher: "Drizzle Blog",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL("https://drizzle-blog-gules.vercel.app"),
-  alternates: {
-    canonical: "https://drizzle-blog-gules.vercel.app/",
-  },
-  openGraph: {
-    title: "Drizzle Blog - Simple Blog Application",
-    description:
-      "A minimal blog platform built with Next.js 15, TypeScript, Drizzle ORM, and Tailwind CSS. Features article listing, detail pages, author relationships, and responsive UI.",
-    url: "https://drizzle-blog-gules.vercel.app",
-    siteName: "Drizzle Blog",
-    images: [
-      {
-        url: "/images/og-image.webp",
-        width: 1200,
-        height: 630,
-        alt: "Drizzle Blog - Simple Blog Application",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Drizzle Blog - Simple Blog Application",
-    description:
-      "A minimal blog platform built with Next.js 15, TypeScript, Drizzle ORM, and Tailwind CSS.",
-    images: ["/images/og-image.webp"],
-    creator: "@drizzleblog",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-};
+export const metadata: Metadata = BLOG_LIST_METADATA;
 
 export default async function BlogPage() {
   let allArticles = [];

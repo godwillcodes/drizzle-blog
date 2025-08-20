@@ -1,5 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import type { Metadata } from "next";
+import { HOME_METADATA } from "@/lib/seo-config";
+
+export const metadata: Metadata = HOME_METADATA;
 
 export default function HeroSection() {
   return (

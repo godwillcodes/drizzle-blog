@@ -1,12 +1,15 @@
 /** @type {import("jest").Config} */
-const { defaults: tsjPreset } = require("ts-jest/presets");
 
-module.exports = {
+export default {
   preset: "ts-jest",
-  testEnvironment: "jsdom",
-  transform: tsjPreset.transform,
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
-  setupFiles: ["<rootDir>/jest.setup.js"], // polyfills TextEncoder/TextDecoder
+  setupFiles: ["<rootDir>/__tests__/jest.setup.ts"],
+  testRegex: "__tests__/.*\\.test\\.ts$",
+  testEnvironment: "node",
+  forceExit: true,
+  detectOpenHandles: true,
+  verbose: true,
+  testTimeout: 10000,
 };
