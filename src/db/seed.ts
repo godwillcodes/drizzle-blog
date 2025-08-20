@@ -94,7 +94,7 @@ async function seed() {
           description: `A deep dive into "${title}", exploring its themes and impact.`,
           content: generateContent(title),
           authorId: author.id,
-          publishDate,
+          publishDate: publishDate.toISOString(), // convert Date to ISO string
           isPublished: idx % 5 !== 0, // every 5th article is a draft
         };
       });
