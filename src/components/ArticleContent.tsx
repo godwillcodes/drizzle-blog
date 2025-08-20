@@ -7,7 +7,7 @@ interface Props {
 
 export default function ArticleContent({ article }: Props) {
   return (
-    <main className="relative font-mono min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-black text-gray-100 px-6 py-32 overflow-hidden">
+    <main className="relative font-sans min-h-screen bg-gradient-to-b from-gray-900 via-gray-950 to-black text-gray-100 px-6 py-32 overflow-hidden">
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-20 left-1/4 w-72 h-72 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
         <div className="absolute bottom-32 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float-slow" />

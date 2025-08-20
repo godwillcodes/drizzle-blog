@@ -3,7 +3,7 @@ import React from "react";
 export default function BlogLoading() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 gap-16 p-6 max-w-7xl mx-auto my-16">
-      {Array.from({ length: 6 }).map((_, i) => (
+      {Array.from({ length:12 }).map((_, i) => (
         <div
           key={i}
           className="flex flex-col p-4 rounded-2xl bg-gray-800 animate-pulse h-40"
