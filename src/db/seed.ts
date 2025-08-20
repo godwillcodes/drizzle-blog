@@ -1,7 +1,7 @@
 import { db } from "../lib/db";
 import { authors, articles } from "./schema";
 
-// Utility: Generate random date in the last 10 years, clamped to now
+// Utility: Generate random date in the last 6 months, clamped to now
 function randomDate(start: Date, end: Date): Date {
   const now = Date.now();
   const startTime = start.getTime();
@@ -9,101 +9,93 @@ function randomDate(start: Date, end: Date): Date {
   return new Date(startTime + Math.random() * (endTime - startTime));
 }
 
-// Utility: slugify the title and append index on collision fallback
-function slugify(title: string, idx: number): string {
-  const baseSlug = title
+// SEO-friendly slugify (no id suffix)
+function slugify(title: string): string {
+  return title
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
-  return `${baseSlug}-${idx}`;
 }
 
 async function seed() {
   try {
     await db.transaction(async (tx) => {
-      // Clear existing data for idempotency (alternative: use onConflictDoNothing)
       await tx.delete(articles);
       await tx.delete(authors);
 
-      // Insert known contemporary authors - unique by email
+      // WFD team authors, parse first and last names roughly from full names, generate emails from slug
+      const wfdAuthors = [
+        { fullName: "Nedjma Benzekri", title: "Shaping the Future of Global Health Access" },
+        { fullName: "Neha Arora", title: "Building Sustainable Financial Pathways" },
+        { fullName: "Fibi Dalyop", title: "Turning Data Into Human Stories" },
+        { fullName: "Maïte Karstanje", title: "Scaling Operations for Greater Impact" },
+        { fullName: "Michell Montserrat Mor Andrade", title: "Driving Digital Transformation for Change" },
+        { fullName: "Aanuoluwapo Ayoola Oladeji", title: "Cultivating People, Power, and Purpose" },
+      ];
+
       const insertedAuthors = await tx
         .insert(authors)
-        .values([
-          { firstName: "James", lastName: "Clear", email: "james.clear@example.com" },
-          { firstName: "Yuval", lastName: "Harari", email: "yuval.harari@example.com" },
-          { firstName: "Colleen", lastName: "Hoover", email: "colleen.hoover@example.com" },
-          { firstName: "Michelle", lastName: "Obama", email: "michelle.obama@example.com" },
-          { firstName: "Walter", lastName: "Isaacson", email: "walter.isaacson@example.com" },
-          { firstName: "Emily", lastName: "St. John Mandel", email: "emily.mandel@example.com" },
-          { firstName: "Tara", lastName: "Westover", email: "tara.westover@example.com" },
-          { firstName: "Andy", lastName: "Weir", email: "andy.weir@example.com" },
-          { firstName: "Sally", lastName: "Rooney", email: "sally.rooney@example.com" },
-          { firstName: "Trevor", lastName: "Noah", email: "trevor.noah@example.com" },
-        ])
+        .values(
+          wfdAuthors.map(({ fullName }) => {
+            const parts = fullName.split(" ");
+            const firstName = parts[0];
+            const lastName = parts.slice(1).join(" ") || "";
+            const emailSlug = `${firstName}.${lastName}`.toLowerCase().replace(/\s+/g, "");
+            return {
+              firstName,
+              lastName,
+              email: `${emailSlug}@wfdteam.example.com`,
+            };
+          })
+        )
         .returning();
 
       if (insertedAuthors.length === 0) {
         throw new Error("No authors were inserted, aborting article seeding.");
       }
 
-      // Article titles inspired by bestsellers & trending themes
+      // Article titles on productivity, work ethic, productivity rights focusing on the WFD themes
       const articleTitles = [
-        "Atomic Habits and the Science of Change",
-        "The Future of Humanity in 21 Lessons",
-        "Love and Loss in the Digital Age",
-        "Becoming: The Power of Personal Story",
-        "The Biography of Innovation",
-        "Post-Pandemic Narratives",
-        "Educated Minds, Divided Worlds",
-        "From Mars to Metaverse",
-        "Normal People in an Abnormal Time",
-        "Born a Crime: Lessons in Resilience",
-        "AI in Everyday Life",
-        "Climate Change and Us",
-        "The Psychology of Money",
-        "Narratives That Shape Nations",
-        "The Rise of Indie Publishing",
-        "How to Stay Creative Under Pressure",
-        "The Art of Minimalism",
-        "Why Stories Matter",
-        "Disruption in Healthcare",
-        "The Future of Work and Learning",
+        "Mastering Productivity for Sustainable Success",
+        "Ethics and Empathy in Modern Workplaces",
+        "Understanding Productivity Rights in the Digital Era",
+        "Balancing Technology and Human Potential",
+        "Workplace Culture: The Heart of Productivity",
+        "Empowering Teams with Purpose and Focus",
       ];
 
-      // Build a more realistic multi-paragraph content generator
+      // Content generation function retains the structure but uses our new titles
       function generateContent(title: string): string {
         return `
-          <p>In this article titled "${title}", we explore the intricate themes and provide insightful analysis.</p>
-          <p>The discussion covers recent trends, historical context, and future outlook. Readers will gain a comprehensive understanding of the subject matter.</p>
-          <p>Expert opinions and real-world examples enhance the reader's engagement and learning experience.</p>
+          <p>In this article titled "${title}", we explore the intricate themes and provide insightful analysis. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.</p>
+          <p>The discussion on "${title}" covers recent trends, historical context, and future outlook. There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable.</p>
+          <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry, specifically, the "${title}" domain. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s...</p>
         `.trim();
       }
 
-      // Prepare articles data with slug collision protection and realistic content
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
       const articlesData = articleTitles.map((title, idx) => {
         const author = insertedAuthors[idx % insertedAuthors.length];
-        const publishDate = randomDate(
-          new Date(new Date().setFullYear(new Date().getFullYear() - 10)),
-          new Date()
-        );
+        const publishDate = randomDate(sixMonthsAgo, new Date());
 
         return {
           title,
-          slug: slugify(title, idx), // append idx to avoid collisions
+          slug: slugify(title),
           description: `A deep dive into "${title}", exploring its themes and impact.`,
           content: generateContent(title),
           authorId: author.id,
-          publishDate: publishDate.toISOString(), // convert Date to ISO string
-          isPublished: idx % 5 !== 0, // every 5th article is a draft
+          publishDate: publishDate.toISOString(),
+          isPublished: idx % 2 === 0, // half published, half draft
         };
       });
 
-      // Bulk insert articles
       await tx.insert(articles).values(articlesData);
     });
 
-    console.log("✅ Seed completed with idempotency, slug safety, and improved content!");
+    console.log("✅ Seed completed with 6 WFD authors and 6 productivity-themed articles!");
   } catch (error) {
     console.error("❌ Seed failed:", error);
     process.exit(1);
